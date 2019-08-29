@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef BLOCK_SIZE
+#define BLOCK_SIZE 4
+#endif
+
 typedef struct {
   int n_row;    // number of rows
   int n_col;    // number of columns
