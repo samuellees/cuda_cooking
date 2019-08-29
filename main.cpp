@@ -21,10 +21,10 @@ void print_matrix(Matrix mat) {
 }
 
 int main() {
-  Matrix A = {6, 5, NULL};
-  Matrix B = {5, 3, NULL};
-  Matrix C = {6, 3, NULL};
-  malloc_and_init_matrix(&A, 1);
+  Matrix A = {4, 8, 8, NULL};
+  Matrix B = {8, 4, 4, NULL};
+  Matrix C = {4, 4, 4, NULL};
+  malloc_and_init_matrix(&A, 3);
   malloc_and_init_matrix(&B, 2);
   malloc_and_init_matrix(&C, 0);
   MatMul(A, B, C);

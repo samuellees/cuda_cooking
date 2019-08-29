@@ -14,23 +14,50 @@
   }
 #endif
 
+__device__ Matrix get_submatrix(const Matrix mat, int block_row, int block_col) {
+  Matrix submat;
+  submat.n_row = BLOCK_SIZE;
+  submat.n_col = BLOCK_SIZE;
+  submat.ld = mat.ld;
+  submat.data = mat.data + block_row * submat.n_row * submat.ld + block_col * submat.n_col;
+  return submat;
+}
+
 __global__ void matmul_kernel(const Matrix A, const Matrix B, Matrix C) {
-  const int row_C = blockIdx.y * blockDim.y + threadIdx.y;
-  const int col_C = blockIdx.x * blockDim.x + threadIdx.x;
+  const int row_sub = threadIdx.y;
+  const int col_sub = threadIdx.x;
+  const int block_row_C = blockIdx.y;
+  const int block_col_C = blockIdx.x;
+  const int row_C = block_row_C * blockDim.y + threadIdx.y;
+  const int col_C = block_col_C * blockDim.x + threadIdx.x;
   if (row_C >= C.n_row || col_C >= C.n_col) {
     return;
   }
-  int offset_A = row_C * A.n_col; // =>  row_A * A.n_col + 0
-  int offset_B = col_C;           // =>      0 * B.n_col + col_B
-  int offset_C = row_C * C.n_col + col_C;
-  C.data[offset_C] = 0;
-  for (int k = 0; k < A.n_col; ++k) {
-    C.data[offset_C] += A.data[offset_A] * B.data[offset_B];
-    offset_A += 1;
-    offset_B += B.n_col;
-  }
-}
 
+  // should be in square shape
+  __shared__ float shared_data_subA[BLOCK_SIZE][BLOCK_SIZE];
+  __shared__ float shared_data_subB[BLOCK_SIZE][BLOCK_SIZE];
+
+  float value = 0;
+  for (int k = 0; k < A.n_col / BLOCK_SIZE; ++k) {
+    // get submatrix of A and B
+    Matrix subA = get_submatrix(A, block_row_C, k);
+    Matrix subB = get_submatrix(B, k, block_col_C);
+
+    // each thread loads one element of subA and subB from 
+    // global memory to shared_memory.
+    shared_data_subA[row_sub][col_sub] = subA.data[row_sub * subA.ld + col_sub];
+    shared_data_subB[row_sub][col_sub] = subB.data[row_sub * subB.ld + col_sub];
+    __syncthreads();
+    // accumulate product into value
+    for (int i = 0; i < BLOCK_SIZE; ++i) {
+      value += shared_data_subA[row_sub][i] * shared_data_subB[i][col_sub];
+    }
+    __syncthreads();
+  }
+  // write value into global memory
+  C.data[row_C * C.ld + col_C] = value;
+}
 
 void MatMul(const Matrix A, const Matrix B, Matrix C) {
   // copy A, B and C to device
@@ -43,6 +70,9 @@ void MatMul(const Matrix A, const Matrix B, Matrix C) {
   d_A.n_row = A.n_row;
   d_B.n_row = B.n_row;
   d_C.n_row = C.n_row;
+  d_A.ld = A.ld;
+  d_B.ld = B.ld;
+  d_C.ld = C.ld;
   int size_A = d_A.n_col * d_A.n_row;
   int size_B = d_B.n_col * d_B.n_row;
   int size_C = d_C.n_col * d_C.n_row;
