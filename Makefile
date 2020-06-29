@@ -1,13 +1,14 @@
-SOURCE_CUDA = dot.cu
-OBJECT_CUDA = dot.o
-SOURCE_CPP = dot.cpp dot_main.cpp
+SOURCE_CUDA = gemv.cu
+OBJECT_CUDA = gemv.o
+SOURCE_CPP = gemv.cpp gemv_main.cpp
 
-dot_main : $(OBJECT_CUDA)
-	g++ -o dot_main $(SOURCE_CPP) $(OBJECT_CUDA) -lcudart -L/usr/local/cuda/lib64 -std=c++11
+gemv_main : $(OBJECT_CUDA)
+	# g++ -o gemv_main $(SOURCE_CPP) $(OBJECT_CUDA) -lcudart -L/usr/local/cuda/lib64 -std=c++11
+	g++ -o gemv_main $(SOURCE_CPP) $(OBJECT_CUDA) -lcudart -L/gpfs/share/software/cuda/cuda-9.0/lib64 -std=c++11
 
 $(OBJECT_CUDA) :
 	nvcc -c $(SOURCE_CUDA)
 
 .PHONY : clean
 clean :
-	-rm dot_main ./*.o
+	-rm gemv_main ./*.o
