@@ -1,21 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
-#include <random>
 #include <cmath>
 #include "gemv.h"
 #include "assert.h"
-
-template <typename scalar_t>
-void malloc_and_init(scalar_t** data, int length) {
-  int seed = 3;
-  std::default_random_engine gen(seed);
-  std::normal_distribution<scalar_t> distribut(0, 1);
-  *data = (scalar_t *)malloc(sizeof(scalar_t) * length);
-  for (int i = 0; i < length; ++i) {
-    (*data)[i] = distribut(gen);
-  }
-}
 
 void print_vector(Vector& vec) {
   for (int i = 0; i < vec.length; ++i) {

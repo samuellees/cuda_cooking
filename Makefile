@@ -7,7 +7,7 @@ gemv_main : $(OBJECT_CUDA)
 	g++ -o gemv_main $(SOURCE_CPP) $(OBJECT_CUDA) -lcudart -L/gpfs/share/software/cuda/cuda-9.0/lib64 -std=c++11
 
 $(OBJECT_CUDA) :
-	nvcc -c $(SOURCE_CUDA)
+	nvcc -c $(SOURCE_CUDA) -std=c++11
 
 .PHONY : clean
 clean :
