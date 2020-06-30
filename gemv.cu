@@ -92,6 +92,35 @@ __global__ void kernel_shared(const Matrix A_trans, const Vector X, Vector Y) {
   }
 }
 
+__global__ void kernel_shuffle(const Matrix A_trans, const Vector X, Vector Y) {
+  const int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  const int laneId = threadIdx.x % 32;
+  const int cache_last = A_trans.n_row - A_trans.n_row % 32;
+  // i: current col
+  for (int i = tid; i < A_trans.n_row; i += threadsPerBlock * blocksPerGrid) {
+    float temp = 0;
+    // j: current row for load cache
+    float shuffle_val = 0;
+    for (int j = laneId; j < cache_last; j += 32) {
+      shuffle_val = X.data[j];
+      int cache_offset = j / 32 * 32;
+      // k: current row for calculate
+      for (int k = 0; k < 32; k++) {
+        temp += A_trans.data[(cache_offset + k) * A_trans.n_col + i]
+          * __shfl_sync(0xffffffff, shuffle_val, k, 32);
+      }
+    }
+    if (cache_last + laneId < A_trans.n_row) {
+      shuffle_val = X.data[cache_last + laneId];
+    }
+    for (int k = cache_last; k < A_trans.n_row; k++) {
+      temp += A_trans.data[k * A_trans.n_col + i] 
+        * __shfl_sync(0xffffffff, shuffle_val, k - cache_last, 32);
+    }
+    Y.data[i] = temp;
+  }
+}
+
 
 void gemv(const Matrix A, const Vector X, Vector Y) {
   Matrix A_trans = transpose(A);
@@ -119,6 +148,9 @@ void gemv(const Matrix A, const Vector X, Vector Y) {
   // invoke kernel
   dim3 dims_block(threadsPerBlock);
   dim3 dims_grid(blocksPerGrid);
+
+  // warm up
+  kernel_naive<<<dims_grid, dims_block>>>(d_A, d_X, d_Y);
 
   // naive
   float elapsedTime_naive;
@@ -172,6 +204,19 @@ void gemv(const Matrix A, const Vector X, Vector Y) {
   CUDA_CHECK(cudaEventDestroy(start_shared)); 
   CUDA_CHECK(cudaEventDestroy(stop_shared));
   printf("Time of shared: %f\n", elapsedTime_shared);
+  // shuffle
+  float elapsedTime_shuffle;
+  cudaEvent_t start_shuffle, stop_shuffle; 
+  CUDA_CHECK(cudaEventCreate(&start_shuffle)); 
+  CUDA_CHECK(cudaEventCreate(&stop_shuffle));
+  CUDA_CHECK(cudaEventRecord(start_shuffle, 0));
+  kernel_shuffle<<<dims_grid, dims_block>>>(d_A_trans, d_X, d_Y);
+  CUDA_CHECK(cudaEventRecord(stop_shuffle, 0)); 
+  CUDA_CHECK(cudaEventSynchronize(stop_shuffle)); 
+  CUDA_CHECK(cudaEventElapsedTime(&elapsedTime_shuffle, start_shuffle, stop_shuffle));
+  CUDA_CHECK(cudaEventDestroy(start_shuffle)); 
+  CUDA_CHECK(cudaEventDestroy(stop_shuffle));
+  printf("Time of shuffle: %f\n", elapsedTime_shuffle);
   
   // copy data from device to host
   CUDA_CHECK(cudaMemcpy(Y.data, d_Y.data, size_Y * sizeof(float),  cudaMemcpyDeviceToHost));

@@ -18,4 +18,4 @@ Learning CUDA: Implement and optimize gemv (16384 * 2048)
 使用#pragma unroll对简单循环进行展开之后，性能反而略有下降，原因尚不清楚。
 
 ### 使用shuffle指令
-shuffle指令可以实现线程束内部寄存器的互相访问，速度极快。暂未尝试
+shuffle指令可以实现线程束内部寄存器的互相访问，速度极快。具体方法和共享内存的版本类似，每次32个线程协同加载数据到寄存器，在通过__shfl_sync指令共享数据。在实现时不小心使用int变量来装float数据，结果怎么也算不对，调了半天bug。kernel执行时间：0.09s。
