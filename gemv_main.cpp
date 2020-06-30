@@ -31,8 +31,8 @@ int main() {
   }
   std::cout << "error: " << error << std::endl;
 
-  print_data(Y.data, 20);
-  print_data(Y_ref.data, 20);
+  // print_data(Y.data, 20);
+  // print_data(Y_ref.data, 20);
 
   free(A.data);
   free(X.data);
