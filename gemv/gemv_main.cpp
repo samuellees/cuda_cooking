@@ -14,20 +14,24 @@ void print_data(const scalar_t * data, int length) {
 }
 
 int main() {
-  Matrix A = {16384, 2048, NULL};
-  Vector X = {2048, NULL};
+  Matrix A = {16384, 16384, NULL};
+  Vector X = {16384, NULL};
   Vector Y = {16384, NULL};
   Vector Y_ref = {16384, NULL};
+  std::cout << "prepare data..." << std::endl;
   malloc_and_init(&A.data, A.n_col * A.n_row);
   malloc_and_init(&X.data, X.length);
   malloc_and_init(&Y.data, Y.length);
   malloc_and_init(&Y_ref.data, Y_ref.length);
+  std::cout << "computing..." << std::endl;
   gemv(A, X, Y);
   gemv_ref(A, X, Y_ref);
 
+  std::cout << "check correctness..." << std::endl;
   bool error = false;
+  #pragma unroll 64
   for (int i = 0; i < A.n_row; ++i) {
-    error = error || (abs(Y.data[i] - Y_ref.data[i]) > 1);
+    error = error || (std::abs(Y.data[i] - Y_ref.data[i]) > 1);
   }
   std::cout << "error: " << error << std::endl;
 

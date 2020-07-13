@@ -258,7 +258,7 @@ void gemv(const Matrix A, const Vector X, Vector Y) {
   CUDA_CHECK(cudaEventElapsedTime(&elapsedTime_naive, start_naive, stop_naive));
   CUDA_CHECK(cudaEventDestroy(start_naive)); 
   CUDA_CHECK(cudaEventDestroy(stop_naive));
-  printf("Time of naive: %f\n", elapsedTime_naive / n_rounds);
+  printf("Time of naive: %fms\n", elapsedTime_naive / n_rounds);
   // coalesce
   float elapsedTime_coalesce;
   cudaEvent_t start_coalesce, stop_coalesce; 
@@ -272,7 +272,7 @@ void gemv(const Matrix A, const Vector X, Vector Y) {
   CUDA_CHECK(cudaEventElapsedTime(&elapsedTime_coalesce, start_coalesce, stop_coalesce));
   CUDA_CHECK(cudaEventDestroy(start_coalesce)); 
   CUDA_CHECK(cudaEventDestroy(stop_coalesce));
-  printf("Time of coalesce: %f\n", elapsedTime_coalesce / n_rounds);
+  printf("Time of coalesce: %fms\n", elapsedTime_coalesce / n_rounds);
   // constant
   float elapsedTime_constant;
   cudaEvent_t start_constant, stop_constant; 
@@ -286,7 +286,7 @@ void gemv(const Matrix A, const Vector X, Vector Y) {
   CUDA_CHECK(cudaEventElapsedTime(&elapsedTime_constant, start_constant, stop_constant));
   CUDA_CHECK(cudaEventDestroy(start_constant)); 
   CUDA_CHECK(cudaEventDestroy(stop_constant));
-  printf("Time of constant: %f\n", elapsedTime_constant / n_rounds);
+  printf("Time of constant: %fms\n", elapsedTime_constant / n_rounds);
   // constant_loop_unroll
   float elapsedTime_constant_loop_unroll;
   cudaEvent_t start_constant_loop_unroll, stop_constant_loop_unroll; 
@@ -300,7 +300,7 @@ void gemv(const Matrix A, const Vector X, Vector Y) {
   CUDA_CHECK(cudaEventElapsedTime(&elapsedTime_constant_loop_unroll, start_constant_loop_unroll, stop_constant_loop_unroll));
   CUDA_CHECK(cudaEventDestroy(start_constant_loop_unroll)); 
   CUDA_CHECK(cudaEventDestroy(stop_constant_loop_unroll));
-  printf("Time of constant_loop_unroll: %f\n", elapsedTime_constant_loop_unroll / n_rounds);
+  printf("Time of constant_loop_unroll: %fms\n", elapsedTime_constant_loop_unroll / n_rounds);
   // shared
   float elapsedTime_shared;
   cudaEvent_t start_shared, stop_shared; 
@@ -314,7 +314,7 @@ void gemv(const Matrix A, const Vector X, Vector Y) {
   CUDA_CHECK(cudaEventElapsedTime(&elapsedTime_shared, start_shared, stop_shared));
   CUDA_CHECK(cudaEventDestroy(start_shared)); 
   CUDA_CHECK(cudaEventDestroy(stop_shared));
-  printf("Time of shared: %f\n", elapsedTime_shared / n_rounds);
+  printf("Time of shared: %fms\n", elapsedTime_shared / n_rounds);
   // shared_loop_unroll
   float elapsedTime_shared_loop_unroll;
   cudaEvent_t start_shared_loop_unroll, stop_shared_loop_unroll; 
@@ -328,7 +328,7 @@ void gemv(const Matrix A, const Vector X, Vector Y) {
   CUDA_CHECK(cudaEventElapsedTime(&elapsedTime_shared_loop_unroll, start_shared_loop_unroll, stop_shared_loop_unroll));
   CUDA_CHECK(cudaEventDestroy(start_shared_loop_unroll)); 
   CUDA_CHECK(cudaEventDestroy(stop_shared_loop_unroll));
-  printf("Time of shared_loop_unroll: %f\n", elapsedTime_shared_loop_unroll / n_rounds);
+  printf("Time of shared_loop_unroll: %fms\n", elapsedTime_shared_loop_unroll / n_rounds);
   // shared_loop_unroll_prefetch
   float elapsedTime_shared_loop_unroll_prefetch;
   cudaEvent_t start_shared_loop_unroll_prefetch, stop_shared_loop_unroll_prefetch; 
@@ -342,7 +342,7 @@ void gemv(const Matrix A, const Vector X, Vector Y) {
   CUDA_CHECK(cudaEventElapsedTime(&elapsedTime_shared_loop_unroll_prefetch, start_shared_loop_unroll_prefetch, stop_shared_loop_unroll_prefetch));
   CUDA_CHECK(cudaEventDestroy(start_shared_loop_unroll_prefetch)); 
   CUDA_CHECK(cudaEventDestroy(stop_shared_loop_unroll_prefetch));
-  printf("Time of shared_loop_unroll_prefetch: %f\n", elapsedTime_shared_loop_unroll_prefetch / n_rounds);
+  printf("Time of shared_loop_unroll_prefetch: %fms\n", elapsedTime_shared_loop_unroll_prefetch / n_rounds);
   // shuffle_loop_unroll
   float elapsedTime_shuffle_loop_unroll;
   cudaEvent_t start_shuffle_loop_unroll, stop_shuffle_loop_unroll; 
@@ -356,7 +356,7 @@ void gemv(const Matrix A, const Vector X, Vector Y) {
   CUDA_CHECK(cudaEventElapsedTime(&elapsedTime_shuffle_loop_unroll, start_shuffle_loop_unroll, stop_shuffle_loop_unroll));
   CUDA_CHECK(cudaEventDestroy(start_shuffle_loop_unroll)); 
   CUDA_CHECK(cudaEventDestroy(stop_shuffle_loop_unroll));
-  printf("Time of shuffle_loop_unroll: %f\n", elapsedTime_shuffle_loop_unroll / n_rounds);
+  printf("Time of shuffle_loop_unroll: %fms\n", elapsedTime_shuffle_loop_unroll / n_rounds);
   // cublas
   float elapsedTime_cublas;
   cudaEvent_t start_cublas, stop_cublas; 
@@ -385,7 +385,7 @@ void gemv(const Matrix A, const Vector X, Vector Y) {
   CUDA_CHECK(cudaEventElapsedTime(&elapsedTime_cublas, start_cublas, stop_cublas));
   CUDA_CHECK(cudaEventDestroy(start_cublas)); 
   CUDA_CHECK(cudaEventDestroy(stop_cublas));
-  printf("Time of cublas: %f\n", elapsedTime_cublas / n_rounds);
+  printf("Time of cublas: %fms\n", elapsedTime_cublas / n_rounds);
   
   // copy data from device to host
   CUDA_CHECK(cudaMemcpy(Y.data, d_Y.data, size_Y * sizeof(float),  cudaMemcpyDeviceToHost));
