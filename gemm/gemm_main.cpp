@@ -15,7 +15,7 @@ void print_data(const scalar_t * data, int length) {
 void print_matrix(Matrix mat) {
   for (int i = 0; i < mat.n_row; ++i) {
     for (int j = 0; j < mat.n_col; ++j) {
-      printf("%.2f, ", mat.data[i * mat.n_col + j]);
+      printf("%.1f,", mat.data[i * mat.n_col + j]);
     }
     std::cout << std::endl;
   }
@@ -23,7 +23,7 @@ void print_matrix(Matrix mat) {
 }
 
 int main() {
-  const int MSIZE = 3180;
+  const int MSIZE = 3135;
   Matrix A = {MSIZE, MSIZE, MSIZE, NULL};
   Matrix B = {MSIZE, MSIZE, MSIZE, NULL};
   Matrix C = {MSIZE, MSIZE, MSIZE, NULL};
@@ -37,12 +37,18 @@ int main() {
   std::vector<float> flops_info;
   gemm_ref(A, B, C_ref, flops_info);
   gemm(A, B, C, flops_info);
+  // print_matrix(A);
+  // std::cout << std::endl;
+  // print_matrix(B);
+  // std::cout << std::endl;
+  // print_matrix(C);
+  // std::cout << std::endl;
+  // print_matrix(C_ref);
 
   std::cout << "check correctness..." << std::endl;
   bool error = false;
-  #pragma unroll 64
   for (int i = 0; i < C.n_row * C.n_col; ++i) {
-    error = error || (std::abs(C.data[i] - C_ref.data[i]) > 1e-5);
+    error = error || (std::abs(C.data[i] - C_ref.data[i]) > 1e-3);
   }
   std::cout << "error: " << error << std::endl;
 

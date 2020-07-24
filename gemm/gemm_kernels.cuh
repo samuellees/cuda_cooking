@@ -67,8 +67,8 @@ __global__ void kernel_shared(KERNEL_PARAMS_LIST) {
 // shared_4workloads
 __global__ void kernel_shared_4w(KERNEL_PARAMS_LIST) {
   // each thread compute 4 elements of C, row_C means the #row of first element.
-  const int row_C = blockIdx.y * blockDim.y + threadIdx.y;
-  const int col_C = blockIdx.x * blockDim.x + threadIdx.x;
+  const int row_C = blockIdx.y * BLOCK_SIZE * 2  + threadIdx.y;
+  const int col_C = blockIdx.x * BLOCK_SIZE * 2  + threadIdx.x;
 
   __shared__ float subA[BLOCK_SIZE * 2][BLOCK_SIZE * 2];
   __shared__ float subB[BLOCK_SIZE * 2][BLOCK_SIZE * 2];
@@ -159,34 +159,12 @@ __global__ void kernel_shared_4w(KERNEL_PARAMS_LIST) {
     C[(row_C+BLOCK_SIZE) * N + col_C+BLOCK_SIZE] = accums[1][1];
 }
 
-__global__ void kernel_padding(const float* A, float* padA,
-                               int64_t M, int64_t N,
-                               int64_t padM, int64_t padN) {
-  const int row_A = blockIdx.y * blockDim.y + threadIdx.y;
-  const int col_A = blockIdx.x * blockDim.x + threadIdx.x;
-  if (row_A < M && col_A < N) {
-    padA[row_A * padN + col_A] = A[row_A * N + col_A];
-  } else {
-    padA[row_A * padN + col_A] = 0;
-  }
-}
-
-__global__ void kernel_unpadding(float* A, const float* padA,
-                                int64_t M, int64_t N,
-                                int64_t padM, int64_t padN) {
-  const int row_A = blockIdx.y * blockDim.y + threadIdx.y;
-  const int col_A = blockIdx.x * blockDim.x + threadIdx.x;
-  if (row_A < M && col_A < N) {
-    A[row_A * N + col_A] = padA[row_A * padN + col_A];
-  }
-}
-
 // shared_4workloads_padding
 #define BLOCK_SIZE_L 64   // large BLOCK
 __global__ void kernel_shared_4w_pad(KERNEL_PARAMS_LIST) {
   // each thread compute 4 elements of C, row_C means the #row of first element.
-  const int row_C = blockIdx.y * blockDim.y + threadIdx.y;
-  const int col_C = blockIdx.x * blockDim.x + threadIdx.x;
+  const int row_C = blockIdx.y * BLOCK_SIZE_L + threadIdx.y;
+  const int col_C = blockIdx.x * BLOCK_SIZE_L + threadIdx.x;
   const int block_size_half = BLOCK_SIZE_L / 2;
 
   __shared__ float subA[BLOCK_SIZE_L][BLOCK_SIZE_L];
@@ -239,8 +217,8 @@ __global__ void kernel_shared_4w_pad(KERNEL_PARAMS_LIST) {
 #define N_WORKERS (BLOCK_SIZE/WORK_PERTHREAD)
 __global__ void kernel_shared_8w_pad(KERNEL_PARAMS_LIST) {
   // each thread compute 4 elements of C, row_C means the #row of first element.
-  const int row_C = blockIdx.y * blockDim.y + threadIdx.y;
-  const int col_C = blockIdx.x * blockDim.x + threadIdx.x;
+  const int row_C = blockIdx.y * BLOCK_SIZE + threadIdx.y;
+  const int col_C = blockIdx.x * BLOCK_SIZE + threadIdx.x;
 
   __shared__ float subA[BLOCK_SIZE][BLOCK_SIZE];
   __shared__ float subB[BLOCK_SIZE][BLOCK_SIZE];
@@ -281,10 +259,10 @@ __global__ void kernel_shared_8w_pad(KERNEL_PARAMS_LIST) {
 #define tidx (threadIdx.x)
 #define tidy (threadIdx.y)
 // shared_16workloads2D_padding
-__global__ void kernel_shared_16w2d_pad(KERNEL_PARAMS_LIST) {
+__global__ void kernel_shared_32w2d_pad(KERNEL_PARAMS_LIST) {
   // each thread compute 32 elements of C, row_C means the #row of first element.
-  const int row_C = blockIdx.y * blockDim.y + tidy;
-  const int col_C = blockIdx.x * blockDim.x + tidx;
+  const int row_C = blockIdx.y * BLOCK_SIZE_L + tidy;
+  const int col_C = blockIdx.x * BLOCK_SIZE_L + tidx;
 
   __shared__ float subA[BLOCK_SIZE_L][BLOCK_SIZE_L];
   __shared__ float subB[BLOCK_SIZE_L][BLOCK_SIZE_L];
@@ -344,13 +322,13 @@ __global__ void kernel_shared_16w2d_pad(KERNEL_PARAMS_LIST) {
 }
 
 // shared_16workloads2D_padding loading data using vec
-__global__ void kernel_shared_16w2d_pad_vec(
+__global__ void kernel_shared_32w2d_pad_vec(
                 const int M, const int N, const int K, 
                 const float4 * A, const float4 * B, float *C) 
 {
   // each thread compute 32 elements of C, row_C means the #row of first element.
-  const int row_C = blockIdx.y * blockDim.y + tidy;
-  const int col_C = blockIdx.x * blockDim.x + tidx;
+  const int row_C = blockIdx.y * BLOCK_SIZE_L + tidy;
+  const int col_C = blockIdx.x * BLOCK_SIZE_L + tidx;
 
   __shared__ float subA[BLOCK_SIZE_L][BLOCK_SIZE_L];
   __shared__ float subB[BLOCK_SIZE_L][BLOCK_SIZE_L];
@@ -371,7 +349,7 @@ __global__ void kernel_shared_16w2d_pad_vec(
       #pragma unroll
       for (int c = 0; c < WPTX/4; ++c) {
         float4 vecA = __ldg(&A[(row_C+r*NTY)*K/4 + (bn+(c*NTX+tidx)*4)/4]);
-        float4 vecB = __ldg(&B[(bn+r*NTY+tidy)*N/4 + (blockIdx.x*blockDim.x+(c*NTX+tidx)*4)/4]);
+        float4 vecB = __ldg(&B[(bn+r*NTY+tidy)*N/4 + (blockIdx.x*BLOCK_SIZE_L+(c*NTX+tidx)*4)/4]);
         subA[r*NTY+tidy][(c*NTX+tidx)*4] = vecA.x;
         subA[r*NTY+tidy][(c*NTX+tidx)*4+1] = vecA.y;
         subA[r*NTY+tidy][(c*NTX+tidx)*4+2] = vecA.z;
