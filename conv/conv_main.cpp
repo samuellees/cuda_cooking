@@ -13,7 +13,8 @@ void print_data(const scalar_t * data, int length) {
 }
 
 int main() {
-  conv1x1_test();
-
+  // conv_1x1_im2col_test();
+  conv_NxN_im2col_with_batch_test();
+  
   return 0;
 }
