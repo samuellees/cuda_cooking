@@ -1,17 +1,19 @@
 #include "cuda_runtime.h"
 #include "gemm.h"
 #include "gemm_kernels.cuh"
+#include "coding.cuh"
 #include "utils.cuh"
 #include <cublas_v2.h>
 
 #define WARMUP 1
-#define K1 1
-#define K2 1
-#define K3 1
-#define K4 1
-#define K5 1
-#define K6 1
+// #define K1 1
+// #define K2 1
+// #define K3 1
+// #define K4 1
+// #define K5 1
+// #define K6 1
 #define K7 1
+#define K8 1
 
 double getGFlops(double time_ms, int64_t m, int64_t n, int64_t k) {
   return 2 * m * k * n / (time_ms/1000) *1e-9;
@@ -271,11 +273,12 @@ void gemm(const Matrix A, const Matrix B, Matrix C, std::vector<float>& flops_in
   CUDA_CHECK(cudaMalloc(&d_padC, padM * padN * sizeof(float)));
   time_padding += padding(d_A.data, d_padA, A.n_row, A.n_col, padM, padK);
   time_padding += padding(d_B.data, d_padB, B.n_row, B.n_col, padK, padN);
-
   float elapsedTime_shared_32w2d_pad_vec;
   dim3 dims_block_shared_32w2d_pad_vec(NTX, NTY);
   dim3 dims_grid_shared_32w2d_pad_vec(CEIL_DIV(C.n_col, BLOCK_SIZE_L), CEIL_DIV(C.n_row, BLOCK_SIZE_L));
   cudaEvent_t start_shared_32w2d_pad_vec, stop_shared_32w2d_pad_vec; 
+    kernel_shared_32w2d_pad_vec<<<dims_grid_shared_32w2d_pad_vec, dims_block_shared_32w2d_pad_vec>>>(
+      padM, padN, padK, (float4*)d_padA, (float4*)d_padB, d_padC);
   CUDA_CHECK(cudaEventCreate(&start_shared_32w2d_pad_vec)); 
   CUDA_CHECK(cudaEventCreate(&stop_shared_32w2d_pad_vec));
   CUDA_CHECK(cudaEventRecord(start_shared_32w2d_pad_vec, 0));
@@ -299,6 +302,49 @@ void gemm(const Matrix A, const Matrix B, Matrix C, std::vector<float>& flops_in
     elapsedTime_shared_32w2d_pad_vec, flops_shared_32w2d_pad_vec, 
     flops_shared_32w2d_pad_vec / flops_info[0] * 100);
   flops_info.push_back(flops_shared_32w2d_pad_vec);
+#endif
+
+
+#ifdef K8
+  // 8 shared_64workloads2D_padding_vec
+  time_padding = 0;
+  padM = CEIL_DIV(C.n_row, BLOCK_SIZE_L_MAX) * BLOCK_SIZE_L_MAX;
+  padN = CEIL_DIV(C.n_col, BLOCK_SIZE_L_MAX) * BLOCK_SIZE_L_MAX;
+  padK = CEIL_DIV(B.n_row, BLOCK_SIZE_L_MAX) * BLOCK_SIZE_L_MAX;
+  CUDA_CHECK(cudaMalloc(&d_padA, padM * padK * sizeof(float)));
+  CUDA_CHECK(cudaMalloc(&d_padB, padK * padN * sizeof(float)));
+  CUDA_CHECK(cudaMalloc(&d_padC, padM * padN * sizeof(float)));
+  time_padding += padding(d_A.data, d_padA, A.n_row, A.n_col, padM, padK);
+  time_padding += padding(d_B.data, d_padB, B.n_row, B.n_col, padK, padN);
+  float elapsedTime_shared_64w2d_pad_vec;
+  dim3 dims_block_shared_64w2d_pad_vec(NTX_MAX, NTY_MAX);
+  dim3 dims_grid_shared_64w2d_pad_vec(CEIL_DIV(C.n_col, BLOCK_SIZE_L_MAX), CEIL_DIV(C.n_row, BLOCK_SIZE_L_MAX));
+  cudaEvent_t start_shared_64w2d_pad_vec, stop_shared_64w2d_pad_vec; 
+    kernel_shared_64w2d_pad_vec<<<dims_grid_shared_64w2d_pad_vec, dims_block_shared_64w2d_pad_vec>>>(
+      padM, padN, padK, (float4*)d_padA, (float4*)d_padB, d_padC);
+  CUDA_CHECK(cudaEventCreate(&start_shared_64w2d_pad_vec)); 
+  CUDA_CHECK(cudaEventCreate(&stop_shared_64w2d_pad_vec));
+  CUDA_CHECK(cudaEventRecord(start_shared_64w2d_pad_vec, 0));
+  for (int i = 0; i < n_rounds; ++i) {
+    kernel_shared_64w2d_pad_vec<<<dims_grid_shared_64w2d_pad_vec, dims_block_shared_64w2d_pad_vec>>>(
+      padM, padN, padK, (float4*)d_padA, (float4*)d_padB, d_padC);
+  }
+  CUDA_CHECK(cudaEventRecord(stop_shared_64w2d_pad_vec, 0)); 
+  CUDA_CHECK(cudaEventSynchronize(stop_shared_64w2d_pad_vec)); 
+  CUDA_CHECK(cudaEventElapsedTime(&elapsedTime_shared_64w2d_pad_vec, start_shared_64w2d_pad_vec, stop_shared_64w2d_pad_vec));
+  CUDA_CHECK(cudaEventDestroy(start_shared_64w2d_pad_vec)); 
+  CUDA_CHECK(cudaEventDestroy(stop_shared_64w2d_pad_vec));
+  time_unpadding = unpadding(d_C.data, d_padC, d_C.n_row, d_C.n_col, padM, padN);
+  CUDA_CHECK(cudaFree(d_padA));
+  CUDA_CHECK(cudaFree(d_padB));
+  CUDA_CHECK(cudaFree(d_padC));
+  elapsedTime_shared_64w2d_pad_vec = elapsedTime_shared_64w2d_pad_vec / n_rounds + time_padding+time_unpadding;
+  float flops_shared_64w2d_pad_vec = getGFlops(elapsedTime_shared_64w2d_pad_vec, A.n_row, B.n_col, A.n_col);
+  printf("kernel %-20s: %8.2f ms, %8.2f GFlops, %6.2f%% of cublas.\n", 
+    "shared_64w2d_pad_vec", 
+    elapsedTime_shared_64w2d_pad_vec, flops_shared_64w2d_pad_vec, 
+    flops_shared_64w2d_pad_vec / flops_info[0] * 100);
+  flops_info.push_back(flops_shared_64w2d_pad_vec);
 #endif
 
 

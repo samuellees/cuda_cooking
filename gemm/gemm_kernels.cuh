@@ -321,6 +321,7 @@ __global__ void kernel_shared_32w2d_pad(KERNEL_PARAMS_LIST) {
   }
 }
 
+
 // shared_16workloads2D_padding loading data using vec
 __global__ void kernel_shared_32w2d_pad_vec(
                 const int M, const int N, const int K, 
@@ -390,6 +391,87 @@ __global__ void kernel_shared_32w2d_pad_vec(
     #pragma unroll
     for (int c = 0; c < WPTX; ++c) {
       C[(row_C+r*NTY) * N + col_C+c*NTX] = accums[r][c];
+    }
+  }
+}
+
+
+#define BLOCK_SIZE_L_MAX 128
+#define WPTY_MAX 8
+#define WPTX_MAX 8
+#define NTY_MAX 16
+#define NTX_MAX 16
+__global__ void kernel_shared_64w2d_pad_vec(
+                const int M, const int N, const int K, 
+                const float4 * A, const float4 * B, float *C) 
+{
+  // each thread compute 64 elements of C, row_C means the #row of first element.
+  const int row_C = blockIdx.y * BLOCK_SIZE_L_MAX + tidy;
+  const int col_C = blockIdx.x * BLOCK_SIZE_L_MAX + tidx;
+
+  __shared__ float subA[BLOCK_SIZE_L_MAX*48];
+  __shared__ float subB[48*BLOCK_SIZE_L_MAX];
+  
+  float regA[WPTY_MAX];
+  float regB[WPTX_MAX];
+  float accums[WPTY_MAX][WPTX_MAX];
+  #pragma unroll
+  for (int r = 0; r < WPTY_MAX; ++r) {
+    for (int c = 0; c < WPTX_MAX; ++c) {
+      accums[r][c] = 0;
+    }
+  }
+
+  for (int bn = 0; bn < K; bn += 48) {
+    for (int offset = (tidy * NTX_MAX + tidx) * 4; offset < BLOCK_SIZE_L_MAX * 48; offset += 256 * 4) {
+      // A
+      int r = offset / 48;
+      int c = offset % 48;
+      float4 vec = A[((row_C+r)*K + bn+c) / 4];
+      subA[r*48+c] = vec.x; 
+      subA[r*48+c+1] = vec.y; 
+      subA[r*48+c+2] = vec.z; 
+      subA[r*48+c+3] = vec.w; 
+      // B
+      r = offset / BLOCK_SIZE_L_MAX;
+      c = offset % BLOCK_SIZE_L_MAX;
+      vec = B[((bn+r)*N + col_C+c) / 4];
+      subB[r*BLOCK_SIZE_L_MAX + c] = vec.x;
+      subB[r*BLOCK_SIZE_L_MAX + c+1] = vec.y;
+      subB[r*BLOCK_SIZE_L_MAX + c+2] = vec.z;
+      subB[r*BLOCK_SIZE_L_MAX + c+3] = vec.w;
+    }
+
+    __syncthreads();
+    // traversal on K dimension
+    #pragma unroll
+    for (int i = 0; i < 48; ++i) {
+      // load into register
+      #pragma unroll
+      for (int r = 0; r < WPTY_MAX; r++) {
+        regA[r] = subA[(r*NTY_MAX+tidy)*48+i];
+      }
+      #pragma unroll
+      for (int c = 0; c < WPTX_MAX; c++) {
+        regB[c] = subB[i*BLOCK_SIZE_L_MAX + c*NTX_MAX+tidx];
+      }
+      // do computation
+      #pragma unroll
+      for (int r = 0; r < WPTY_MAX; ++r) {
+        #pragma unroll
+        for (int c = 0; c < WPTX_MAX; ++c) {
+          accums[r][c] += regA[r] * regB[c];
+        }
+      }
+    }
+    __syncthreads();
+  }
+  // write value into global memory
+  #pragma unroll
+  for (int r = 0; r < WPTY_MAX; ++r) {
+    #pragma unroll
+    for (int c = 0; c < WPTX_MAX; ++c) {
+      C[(row_C+r*NTY_MAX) * N + col_C+c*NTX_MAX] = accums[r][c];
     }
   }
 }

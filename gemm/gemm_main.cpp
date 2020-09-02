@@ -23,7 +23,7 @@ void print_matrix(Matrix mat) {
 }
 
 int main() {
-  const int MSIZE = 3135;
+  const int MSIZE = 2047;
   Matrix A = {MSIZE, MSIZE, MSIZE, NULL};
   Matrix B = {MSIZE, MSIZE, MSIZE, NULL};
   Matrix C = {MSIZE, MSIZE, MSIZE, NULL};
