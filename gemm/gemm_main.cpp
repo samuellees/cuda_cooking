@@ -23,11 +23,13 @@ void print_matrix(Matrix mat) {
 }
 
 int main() {
-  const int MSIZE = 2047;
-  Matrix A = {MSIZE, MSIZE, MSIZE, NULL};
-  Matrix B = {MSIZE, MSIZE, MSIZE, NULL};
-  Matrix C = {MSIZE, MSIZE, MSIZE, NULL};
-  Matrix C_ref = {MSIZE, MSIZE, MSIZE, NULL};
+  const int M = 8000;
+  const int K = 8000;
+  const int N = 8000;
+  Matrix A = {M, K, K, NULL};
+  Matrix B = {K, N, N, NULL};
+  Matrix C = {M, N, N, NULL};
+  Matrix C_ref = {M, N, N, NULL};
   std::cout << "prepare data..." << std::endl;
   malloc_and_init(&A.data, A.n_row * A.n_col);
   malloc_and_init(&B.data, B.n_row * B.n_col);

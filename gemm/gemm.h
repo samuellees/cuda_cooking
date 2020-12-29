@@ -26,9 +26,9 @@ inline void malloc_and_init(scalar_t** data, int64_t length) {
   *data = (scalar_t *)malloc(sizeof(scalar_t) * length);
   // const float tmp = length;
   for (int64_t i = 0; i < length; ++i) {
-    (*data)[i] = distribut(gen);
+    // (*data)[i] = distribut(gen);
     // (*data)[i] = (i*i - 100*i + 7) / tmp;
-    // (*data)[i] = 1;
+    (*data)[i] = 1;
   }
 }
 

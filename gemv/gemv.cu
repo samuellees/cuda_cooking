@@ -4,12 +4,14 @@
 #include "gemv.h"
 
 #ifndef CUDA_CHECK
+
 #define CUDA_CHECK(code)                                                  \
   {                                                                       \
-    if ((code) != cudaSuccess) {                                          \
+    cudaError_t status = (code);                                         \
+    if ((status) != cudaSuccess) {                                          \
       fprintf(stderr, "CUDA error in file: %s, line: %d, %s\n", __FILE__, \
-              __LINE__, cudaGetErrorString((code)));                      \
-      exit((code));                                                       \
+              __LINE__, cudaGetErrorString((status)));                      \
+      exit((status));                                                       \
     }                                                                     \
   }
 #endif

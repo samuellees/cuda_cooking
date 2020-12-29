@@ -7,15 +7,17 @@
 
 #define CUDA_CHECK(code)                                                  \
   {                                                                       \
-    if ((code) != cudaSuccess) {                                          \
+    cudaError_t status = (code);                                         \
+    if ((status) != cudaSuccess) {                                          \
       fprintf(stderr, "CUDA error in file: %s, line: %d, %s\n", __FILE__, \
-              __LINE__, cudaGetErrorString((code)));                      \
-      exit((code));                                                       \
+              __LINE__, cudaGetErrorString((status)));                      \
+      exit((status));                                                       \
     }                                                                     \
   }
 
-#define CUDNN_CHECK(condition)                                            \
+#define CUDNN_CHECK(code)                                            \
   {                                                                       \
+    cudnnStatus_t condition = (code);                                         \
     if ((condition) != CUDNN_STATUS_SUCCESS) {                            \
       fprintf(stderr, "CUDNN error in file: %s, line: %d, %s\n", __FILE__, \
               __LINE__, cudnnGetErrorString((condition)));                \

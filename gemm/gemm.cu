@@ -13,7 +13,7 @@
 // #define K5 1
 // #define K6 1
 #define K7 1
-#define K8 1
+// #define K8 1
 
 double getGFlops(double time_ms, int64_t m, int64_t n, int64_t k) {
   return 2 * m * k * n / (time_ms/1000) *1e-9;
@@ -296,6 +296,7 @@ void gemm(const Matrix A, const Matrix B, Matrix C, std::vector<float>& flops_in
   CUDA_CHECK(cudaFree(d_padB));
   CUDA_CHECK(cudaFree(d_padC));
   elapsedTime_shared_32w2d_pad_vec = elapsedTime_shared_32w2d_pad_vec / n_rounds + time_padding+time_unpadding;
+  // elapsedTime_shared_32w2d_pad_vec = elapsedTime_shared_32w2d_pad_vec / n_rounds;
   float flops_shared_32w2d_pad_vec = getGFlops(elapsedTime_shared_32w2d_pad_vec, A.n_row, B.n_col, A.n_col);
   printf("kernel %-20s: %8.2f ms, %8.2f GFlops, %6.2f%% of cublas.\n", 
     "shared_32w2d_pad_vec", 
